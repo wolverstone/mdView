@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<title>mdView.html</title>
+	<!--link rel="stylesheet/less" type="text/css" href="mdView-unicode.less" /-->
+	<!--script src='less.min.js'></script-->
+</head>
+<body>
+	<div id='header'>
+		<div>
+			<a href='https://github.com/markedjs/marked'>marked.js</a>
+			<a href='https://github.github.com/gfm/'>markdown</a>
+			<a href='https://github.com/altercation/solarized'>colors</a>
+			<a href='http://lesscss.org/'>less</a>
+		</div>
+	</div>	
+	<div>
+<!-- to include external files, use any combination of:
+	- REST (thisfile.aspx/file.md)
+	- a GET query (thisfile.html?p=file.md)
+	- an anchor reference (thisfile.html#file.md)
+-->
+<!-- to use mdView in a sharepoint wiki page, include this block: -->
+<!-- BEGINNING OF BLOCK -->
+		<script src='mdView.js'>
+# mdView test
+
+## this is some inline markdown
+
+here's a paragraph
+
+- and
+- here
+- is
+- a
+- list
+		</script>
+<!-- END OF BLOCK -->
+	</div>
+</body>
+</html>
