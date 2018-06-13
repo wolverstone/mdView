@@ -1,8 +1,8 @@
 "use strict" ;
-var debug = true ;
-function log(msg){if(debug==true){console.log(msg);}}
-log('debugging active...') ;
-var t0 = new Date() ;
+var verbose = true ; // switch to 'true' to enable verbose mode
+function mdLog(msg){if(verbose==true){console.log(msg);}}
+mdLog('debugging active...') ;
+if(verbose==true){var t0 = new Date();}
 
 // script identification (know thyself)
 //// place a fingerprint as a temporary benchmark
@@ -26,29 +26,24 @@ var scriptDir = thisScript.src.split('/').slice(0,-1).join('/')+'/' ;
 //// erase the fingerprint
 parentNode.removeChild(fingerprint) ;
 
-//TESTING
-/*
-var newFrame = document.createElement('iframe') ;
-newFrame.src = 'plain.txt' ;
-newFrame.id = 'plaintxt' ;
-parentNode.appendChild(newFrame) ;
-var x = document.getElementById('plaintxt') ;
-var y = (x.contentWindow || x.contentDocument) ;
-console.log(x.src) ;
-    if (y.document)y = y.document;
-    y.body.style.backgroundColor = "red";
-*/
-
-// identify and retrieve inputs
+// identify, retrieve, and append inputs
+//// set up variables and define useful functions
 var markdown = {} ;
+function appendToParent(divID,divBody) {
+	var newDiv = document.createElement('div') ;
+	newDiv.id = divID ;
+	newDiv.innerHTML = marked(divBody) ;
+	parentNode.appendChild(newDiv) ;
+	mdLog('appending element #'+divID) ;
+}
 function ajax(inputID,href) {
-	//console.log(href) ;
+	mdLog('calling AJAX: #'+inputID+' : '+href) ;
 	var xhr = new XMLHttpRequest() ;
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState === 4) {
-			console.log('AJAX: '+inputID+' : '+href) ;
-			//markdown.push([href,xhr.responseText]) ;
+			mdLog('AJAX results for #'+inputID+' : '+xhr.responseText) ;
 			markdown[inputID] = xhr.responseText ;
+			appendToParent(inputID,markdown[inputID]) ;
 		}
 	}
 	xhr.open('GET',href,true) ;
@@ -58,10 +53,10 @@ function ajax(inputID,href) {
 //// REST
 var i ;
 var ext = ['.aspx/','.php/'] ;
-console.log('-----REST-----') ;
+mdLog('-----REST-----') ;
 for ( i in ext ) {
 	var inputRestPos = document.location.pathname.indexOf(ext[i]) ;
-	console.log(ext[i]+' inputRestPos = '+inputRestPos) ;
+	mdLog('inputRestPos ('+ext[i]+') = '+inputRestPos) ;
 	if (inputRestPos > 0) {
 	
 //// !!!!! 20180613: external queries are failing because they're referring to the wrong directory. I need to create a baseURL variable and prepend it to the external references
@@ -69,69 +64,67 @@ for ( i in ext ) {
 ////
 		var inputRestSrc = document.location.pathname.substr(inputRestPos+ext[i].length) ;
 		if ( inputRestSrc.length > 0 ) {
-			console.log('inputRestSrc = ',inputRestSrc) ;
-			ajax('REST-'+inputRestSrc,inputRestSrc) ;
+			mdLog('inputRestSrc = '+inputRestSrc) ;
+			ajax('mdView-REST',inputRestSrc) ;
 		}
 	}
 }
 //// anchor
-console.log('-----anchor-----') ;
+mdLog('-----anchor-----') ;
 if ( document.location.hash ) {
 	var inputHashSrc = document.location.hash.substr(1) ;
-	console.log('inputHashSrc = '+inputHashSrc) ;
-	markdown['hash-inputHashSrc'] = '' ;
-	ajax('hash-'+inputHashSrc,inputHashSrc) ;
+	mdLog('inputHashSrc = '+inputHashSrc) ;
+	ajax('mdView-hash',inputHashSrc) ;
 }
 //// HTTP GET query string
-console.log('-----query-----') ;
+mdLog('-----query-----') ;
 if ( document.location.search ) {
 	var queryList = document.location.search.substr(1).split('&') ;
 	for ( i in queryList ) {
 		var argument = queryList[i].split('=',2) ;
 		if (argument[0]=='p') {
-			console.log(argument[0],argument[1]) ;
-			ajax('get-'+argument[1],argument[1]) ;
+			mdLog('GET query: '+argument[0]+' = '+argument[1]) ;
+			ajax('mdView-query-'+argument[1],argument[1]) ;
 		}
 	}
 }
 //// inline markdown
-console.log('-----inline-----') ;
+mdLog('-----inline-----') ;
 if ( thisScript.innerHTML.length > 0 ) {
-	markdown['__inline__'] = thisScript.innerHTML ;
+	markdown['mdView-inline'] = thisScript.innerHTML ;
+	appendToParent('mdView-inline',markdown['mdView-inline'	]) ;
 }
 
-// add marked.js and start loading it (move to start of script?)
+// add marked.js and start loading it
 var markedScript = document.createElement('script') ;
 markedScript.src = scriptDir+'marked.min.js' ;
 parentNode.appendChild(markedScript) ;
 
-	console.info(JSON.stringify(markdown)) ;
-
-
 // once marked.js has loaded, parse the markdown
-markedScript.onload = function() {
+document.onload = function() {
 
-	function appendElements(divID,divBody) {
-		var newDiv = document.createElement('div') ;
-		newDiv.id = divID ;
-		newDiv.innerHTML = marked(divBody) ;
-		parentNode.appendChild(newDiv) ;
+		// alternative approach: use .map() :
+			//function convertMD(mdBit) {
+				//mdLog('mdBit = ',mdBit) ;
+				//return '<div id="'+mdBit[0]+'">'+marked(mdBit[1])+'</div>\n' ;
+			//}
+			//var blarg = markdown.map(convertMD) ;
+			//parentNode.insertAdjacentHTML('beforeend',blarg.join('\n')) ;
+			//console.info(JSON.stringify(blarg)) ;
+
+	// update the window title
+	//// grab the contents of the first H1 tag in our sandbox
+	var mdTitle = parentNode.getElementsByTagName('h1')[0].textContent ;
+	//// append that string to the current window title
+	document.title = document.title+' - '+mdTitle ;
+	mdLog('new document.title = '+mdTitle) ;
+
+	mdLog(JSON.stringify(markdown)) ;
+	
+	// see how long this took to render
+	if(verbose==true){
+		var t1 = new Date();
+		var deltaT = t1 - t0 ;
+		parentNode.insertAdjacentHTML('beforeend','<div>'+deltaT.toString()+'ms</div>\n') ;
 	}
-	for (i in markdown) {
-		appendElements(i,markdown[i]) ;
-	}
-
-	//function convertMD(mdBit) {
-		//console.log('mdBit = ',mdBit) ;
-//		return '<div id="'+mdBit[0]+'">'+marked(mdBit[1])+'</div>\n' ;
-	//}
-//	var blarg = markdown.map(convertMD) ;
-//	parentNode.insertAdjacentHTML('beforeend',blarg.join('\n')) ;
-//	console.info(JSON.stringify(blarg)) ;
-
-	console.info(JSON.stringify(markdown)) ;
-
-	var t1 = new Date() ;
-	var deltaT = t1 - t0 ;
-	parentNode.insertAdjacentHTML('beforeend','<div>'+deltaT.toString()+'ms</div>\n') ;	
 }
